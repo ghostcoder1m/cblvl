@@ -1,0 +1,62 @@
+{
+    "pubsub": {
+        "input_topic": "projects/${PROJECT_ID}/topics/content-for-video",
+        "output_topic": "projects/${PROJECT_ID}/topics/generated-videos",
+        "subscription": "projects/${PROJECT_ID}/subscriptions/video-generation-sub"
+    },
+    "storage": {
+        "bucket": "${PROJECT_ID}-content-assets",
+        "videos_prefix": "videos/",
+        "temp_prefix": "temp/",
+        "max_file_size_mb": 500,
+        "allowed_formats": ["mp4", "webm", "mov"]
+    },
+    "generation": {
+        "text_to_video": {
+            "enabled": true,
+            "model": "modelscope/damo-text-to-video-generation",
+            "max_duration": 60,
+            "fps": 30,
+            "resolution": {
+                "width": 1024,
+                "height": 576
+            }
+        },
+        "image_to_video": {
+            "enabled": true,
+            "model": "stability-ai/stable-video-diffusion",
+            "version": "1.0.0",
+            "frames": 60,
+            "fps": 30,
+            "motion_bucket_id": 127
+        },
+        "video_enhancement": {
+            "enabled": true,
+            "upscale_factor": 2,
+            "denoise_strength": 0.5
+        }
+    },
+    "processing": {
+        "max_concurrent_requests": 2,
+        "retry_attempts": 3,
+        "batch_size": 1,
+        "timeout_seconds": 900,
+        "chunk_size_mb": 100
+    },
+    "quality": {
+        "min_resolution": {
+            "width": 640,
+            "height": 360
+        },
+        "min_fps": 24,
+        "min_bitrate_mbps": 2,
+        "max_file_size_mb": 500,
+        "required_formats": ["mp4"],
+        "compression_crf": 23
+    },
+    "cache": {
+        "enabled": true,
+        "ttl_seconds": 86400,
+        "max_size_mb": 5000
+    }
+} 

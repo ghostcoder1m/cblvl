@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audio-generation-config
+  namespace: content-automation
+data:
+  # Google Cloud Project configuration
+  GOOGLE_CLOUD_PROJECT: "${PROJECT_ID}"
+  
+  # Storage configuration
+  STORAGE_BUCKET: "${PROJECT_ID}-content-assets"
+  STORAGE_PREFIX: "audio/"
+  
+  # Pub/Sub configuration
+  PUBSUB_OUTPUT_TOPIC: "generated-audio"
+  
+  # Text-to-Speech configuration
+  TTS_LANGUAGE_CODE: "en-US"
+  TTS_VOICE_NAME: "en-US-Neural2-D"
+  TTS_SPEAKING_RATE: "1.0"
+  TTS_PITCH: "0.0"
+  TTS_SAMPLE_RATE: "24000"
+  
+  # Logging configuration
+  LOG_LEVEL: "INFO"
+  
+  # Quality check configuration
+  MIN_SAMPLE_RATE: "16000"
+  MAX_SILENCE_DURATION: "2.0"
+  MIN_SIGNAL_TO_NOISE_RATIO: "20.0"
+  
+  # Performance configuration
+  MAX_CONCURRENT_REQUESTS: "10"
+  RETRY_ATTEMPTS: "3"
+  BATCH_SIZE: "5"
+  
+  # Resource limits
+  MAX_FILE_SIZE_MB: "100"
+  MAX_TEXT_LENGTH: "10000"
+  
+  # Monitoring configuration
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "8000"
+  METRICS_PATH: "/metrics" 

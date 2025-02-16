@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audio-generation-service
+  namespace: content-automation
+  labels:
+    app: audio-generation-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: audio-generation-service
+  template:
+    metadata:
+      labels:
+        app: audio-generation-service
+    spec:
+      containers:
+      - name: audio-generation-service
+        image: gcr.io/${PROJECT_ID}/audio-generation-service:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: audio-generation-config
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        readinessProbe:
+          httpGet:
+            path: /docs
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /docs
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 20
+        volumeMounts:
+        - name: google-cloud-key
+          mountPath: /var/secrets/google
+          readOnly: true
+        - name: temp-audio
+          mountPath: /tmp
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: google-cloud-key
+      - name: temp-audio
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audio-generation-service
+  namespace: content-automation
+spec:
+  selector:
+    app: audio-generation-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP 

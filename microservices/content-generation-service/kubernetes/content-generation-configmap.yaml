@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: content-generation-config
+  namespace: content-automation
+data:
+  GOOGLE_CLOUD_PROJECT: ${PROJECT_ID}
+  GOOGLE_CLOUD_REGION: us-central1
+  PUBSUB_INPUT_TOPIC: discovered-topics
+  PUBSUB_OUTPUT_TOPIC: generated-content
+  PUBSUB_SUBSCRIPTION: content-generation-sub
+  LOG_LEVEL: INFO
+  MODEL_NAME: gemini-pro
+  MODEL_TEMPERATURE: "0.7"
+  MODEL_TOP_P: "0.9"
+  MAX_TOKENS: "1000"
+  MIN_READABILITY_SCORE: "60"
+  MAX_KEYWORD_DENSITY: "0.03"
+  FALLBACK_MODEL: text-bison@002 

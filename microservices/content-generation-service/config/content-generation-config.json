@@ -1,0 +1,50 @@
+{
+    "pubsub": {
+        "input_topic": "projects/test-project/topics/discovered-topics",
+        "output_topic": "projects/test-project/topics/generated-content",
+        "subscription": "projects/test-project/subscriptions/content-generation-sub"
+    },
+    "content": {
+        "max_length": 2000,
+        "min_length": 500,
+        "max_retries": 3,
+        "batch_size": 5,
+        "formats": ["article", "blog_post", "social_media"],
+        "default_format": "article"
+    },
+    "templates": {
+        "article": {
+            "sections": ["introduction", "main_points", "analysis", "conclusion"],
+            "min_sections": 4,
+            "max_sections": 6
+        },
+        "blog_post": {
+            "sections": ["hook", "body", "takeaway"],
+            "min_sections": 3,
+            "max_sections": 4
+        },
+        "social_media": {
+            "sections": ["content"],
+            "max_length": 280,
+            "hashtag_limit": 3
+        }
+    },
+    "seo": {
+        "min_keywords": 3,
+        "max_keywords": 8,
+        "keyword_density": 0.02,
+        "max_keyword_density": 0.03,
+        "meta_description_length": 160
+    },
+    "quality": {
+        "min_readability_score": 60,
+        "plagiarism_threshold": 0.8
+    },
+    "model": {
+        "name": "gemini-pro",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 1000,
+        "fallback_model": "text-bison@002"
+    }
+} 

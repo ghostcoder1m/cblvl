@@ -1,0 +1,19 @@
+{%- set title = topic.term|title %}
+{%- set category = topic.metadata.category|default('general') %}
+
+# {{ title }}
+
+{{ sections.introduction }}
+
+{% for point in sections.main_points.split('
+') %}
+## {{ point|title }}
+{% endfor %}
+
+{{ sections.analysis }}
+
+## Conclusion
+{{ sections.conclusion }}
+
+---
+*Generated on {{ metadata.generated_at }} | Category: {{ category }}*

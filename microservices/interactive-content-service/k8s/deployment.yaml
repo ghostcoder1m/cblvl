@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: interactive-content-service
+  labels:
+    app: interactive-content-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: interactive-content-service
+  template:
+    metadata:
+      labels:
+        app: interactive-content-service
+    spec:
+      containers:
+      - name: interactive-content-service
+        image: gcr.io/${PROJECT_ID}/interactive-content-service:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: ENVIRONMENT
+          value: "production"
+        - name: GOOGLE_CLOUD_PROJECT
+          valueFrom:
+            configMapKeyRef:
+              name: interactive-content-config
+              key: project_id
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: interactive-content-config
+              key: redis_url
+        volumeMounts:
+        - name: google-cloud-key
+          mountPath: /app/config/service-account.json
+          subPath: service-account.json
+        - name: config-volume
+          mountPath: /app/config
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: interactive-content-key
+      - name: config-volume
+        configMap:
+          name: interactive-content-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: interactive-content-service
+spec:
+  selector:
+    app: interactive-content-service
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: interactive-content-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: interactive-content-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 300 

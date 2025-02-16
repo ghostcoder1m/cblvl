@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: topic-prioritization-config
+  namespace: content-automation
+data:
+  GOOGLE_CLOUD_PROJECT: ${PROJECT_ID}
+  GOOGLE_CLOUD_REGION: us-central1
+  PUBSUB_INPUT_TOPIC: discovered-topics
+  PUBSUB_OUTPUT_TOPIC: prioritized-topics
+  PUBSUB_SUBSCRIPTION: topic-prioritization-sub
+  LOG_LEVEL: INFO
+  MODEL_NAME: topic_prioritization_model
+  MODEL_ENDPOINT: topic_prioritization_endpoint
+  MIN_PRIORITY_SCORE: "0.6"
+  MAX_TOPICS_PER_BATCH: "20"
+  BIGQUERY_DATASET: content_automation
+  GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/google/key.json 

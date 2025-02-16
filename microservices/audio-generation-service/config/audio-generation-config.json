@@ -1,0 +1,48 @@
+{
+    "pubsub": {
+        "input_topic": "projects/${PROJECT_ID}/topics/generated-articles",
+        "output_topic": "projects/${PROJECT_ID}/topics/generated-audio",
+        "subscription": "projects/${PROJECT_ID}/subscriptions/audio-generation-sub"
+    },
+    "tts": {
+        "google_cloud": {
+            "language_code": "en-US",
+            "voice": {
+                "name": "en-US-Neural2-D",
+                "ssml_gender": "NEUTRAL"
+            },
+            "audio_config": {
+                "audio_encoding": "MP3",
+                "speaking_rate": 1.0,
+                "pitch": 0,
+                "volume_gain_db": 0.0,
+                "sample_rate_hertz": 24000,
+                "effects_profile_id": ["headphone-class-device"]
+            }
+        },
+        "fallback": {
+            "engine": "pyttsx3",
+            "rate": 150,
+            "volume": 1.0,
+            "voice": "english"
+        }
+    },
+    "storage": {
+        "bucket": "${PROJECT_ID}-content-assets",
+        "audio_prefix": "audio/",
+        "format": "mp3",
+        "max_file_size_mb": 100
+    },
+    "processing": {
+        "chunk_size": 5000,
+        "max_concurrent_requests": 10,
+        "retry_attempts": 3,
+        "batch_size": 5
+    },
+    "quality": {
+        "min_sample_rate": 16000,
+        "min_bitrate": 64000,
+        "required_formats": ["mp3", "wav"],
+        "max_silence_duration": 1.0
+    }
+} 

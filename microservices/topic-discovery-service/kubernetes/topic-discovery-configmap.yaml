@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: topic-discovery-config
+  namespace: content-automation
+data:
+  GOOGLE_CLOUD_PROJECT: ${PROJECT_ID}
+  PUBSUB_INPUT_TOPIC: raw-data-input
+  PUBSUB_OUTPUT_TOPIC: discovered-topics
+  PUBSUB_SUBSCRIPTION: topic-discovery-sub
+  LOG_LEVEL: INFO
+  MIN_TREND_SCORE: "0.6"
+  MAX_TOPICS_PER_BATCH: "50"
+  UPDATE_INTERVAL_MINUTES: "30"
+  MIN_MENTIONS: "10" 

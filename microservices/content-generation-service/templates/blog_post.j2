@@ -1,0 +1,16 @@
+{%- set title = topic.term|title %}
+
+# {{ title }}
+
+{{ sections.hook }}
+
+{{ sections.body }}
+
+## Key Takeaway
+{{ sections.takeaway }}
+
+---
+*Published on {{ metadata.generated_at }}*
+{% if metadata.target_audience %}
+*Target Audience: {{ metadata.target_audience }}*
+{% endif %}

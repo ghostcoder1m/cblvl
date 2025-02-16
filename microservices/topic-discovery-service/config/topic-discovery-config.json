@@ -1,0 +1,32 @@
+{
+    "pubsub": {
+        "input_topic": "projects/${PROJECT_ID}/topics/raw-data-input",
+        "output_topic": "projects/${PROJECT_ID}/topics/discovered-topics",
+        "subscription": "projects/${PROJECT_ID}/subscriptions/topic-discovery-sub"
+    },
+    "analysis": {
+        "min_trend_score": 0.6,
+        "max_topics_per_batch": 50,
+        "update_interval_minutes": 30,
+        "min_mentions": 10
+    },
+    "data_sources": {
+        "google_trends": {
+            "enabled": true,
+            "region": "US",
+            "language": "en"
+        },
+        "social_media": {
+            "enabled": true,
+            "platforms": ["twitter", "reddit"],
+            "min_engagement": 100
+        }
+    },
+    "nlp": {
+        "min_token_length": 3,
+        "max_token_length": 50,
+        "stop_words": "english",
+        "min_document_frequency": 2,
+        "max_document_frequency": 0.95
+    }
+} 

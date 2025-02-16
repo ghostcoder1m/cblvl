@@ -1,0 +1,93 @@
+{
+    "pubsub": {
+        "input_topic": "projects/${PROJECT_ID}/topics/content-for-interaction",
+        "output_topic": "projects/${PROJECT_ID}/topics/interactive-content",
+        "subscription": "projects/${PROJECT_ID}/subscriptions/interactive-content-sub"
+    },
+    "storage": {
+        "bucket": "${PROJECT_ID}-content-assets",
+        "interactive_prefix": "interactive/",
+        "templates_prefix": "templates/",
+        "max_file_size_mb": 10,
+        "allowed_formats": ["html", "json", "md"]
+    },
+    "interactive_elements": {
+        "polls": {
+            "enabled": true,
+            "max_options": 10,
+            "min_options": 2,
+            "expiration_hours": 72
+        },
+        "quizzes": {
+            "enabled": true,
+            "max_questions": 20,
+            "min_questions": 1,
+            "scoring_enabled": true
+        },
+        "comments": {
+            "enabled": true,
+            "moderation": true,
+            "max_length": 1000,
+            "threading_depth": 3
+        },
+        "reactions": {
+            "enabled": true,
+            "types": ["like", "love", "insightful", "celebrate", "curious"]
+        },
+        "embedded_media": {
+            "enabled": true,
+            "allowed_types": ["image", "video", "audio", "iframe"],
+            "max_size_mb": 50
+        }
+    },
+    "realtime": {
+        "websocket": {
+            "enabled": true,
+            "max_connections": 10000,
+            "heartbeat_interval": 30
+        },
+        "redis": {
+            "enabled": true,
+            "ttl_seconds": 86400,
+            "max_size_mb": 1000
+        }
+    },
+    "templates": {
+        "article": {
+            "sections": ["header", "content", "interactive", "footer"],
+            "allowed_elements": ["polls", "quizzes", "comments", "reactions"]
+        },
+        "tutorial": {
+            "sections": ["introduction", "steps", "quiz", "feedback"],
+            "allowed_elements": ["quizzes", "comments", "reactions", "progress"]
+        },
+        "discussion": {
+            "sections": ["topic", "responses", "related"],
+            "allowed_elements": ["comments", "reactions", "polls"]
+        }
+    },
+    "processing": {
+        "max_concurrent_requests": 50,
+        "retry_attempts": 3,
+        "batch_size": 10,
+        "timeout_seconds": 30
+    },
+    "moderation": {
+        "enabled": true,
+        "auto_moderation": true,
+        "toxicity_threshold": 0.8,
+        "spam_threshold": 0.9,
+        "cache_duration": 3600
+    },
+    "analytics": {
+        "enabled": true,
+        "tracking_events": [
+            "view",
+            "engage",
+            "complete",
+            "share",
+            "react"
+        ],
+        "retention_days": 90
+    }
+} 

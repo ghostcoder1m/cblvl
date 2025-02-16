@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: video-generation-service
+  namespace: content-automation
+  labels:
+    app: video-generation-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: video-generation-service
+  template:
+    metadata:
+      labels:
+        app: video-generation-service
+    spec:
+      containers:
+      - name: video-generation-service
+        image: gcr.io/${PROJECT_ID}/video-generation-service:latest
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: video-generation-config
+        resources:
+          requests:
+            cpu: "2000m"
+            memory: "4Gi"
+          limits:
+            cpu: "4000m"
+            memory: "8Gi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 20
+        volumeMounts:
+        - name: temp-storage
+          mountPath: /tmp/videos
+        - name: google-cloud-key
+          mountPath: /var/secrets/google
+          readOnly: true
+      volumes:
+      - name: temp-storage
+        emptyDir: {}
+      - name: google-cloud-key
+        secret:
+          secretName: google-cloud-key
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: video-generation-service
+  namespace: content-automation
+spec:
+  selector:
+    app: video-generation-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP 

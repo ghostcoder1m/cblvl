@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audio-generation-config
+  namespace: content-automation
+data:
+  GOOGLE_CLOUD_PROJECT: ${PROJECT_ID}
+  GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/google/key.json
+  PUBSUB_INPUT_TOPIC: generated-articles
+  PUBSUB_OUTPUT_TOPIC: generated-audio
+  PUBSUB_SUBSCRIPTION: audio-generation-sub
+  STORAGE_BUCKET: ${PROJECT_ID}-content-assets
+  STORAGE_PREFIX: audio/
+  LOG_LEVEL: INFO
+  TTS_LANGUAGE_CODE: en-US
+  TTS_VOICE_NAME: en-US-Neural2-D
+  TTS_SPEAKING_RATE: "1.0"
+  TTS_PITCH: "0"
+  TTS_SAMPLE_RATE: "24000"
+  MAX_CONCURRENT_REQUESTS: "10"
+  RETRY_ATTEMPTS: "3" 

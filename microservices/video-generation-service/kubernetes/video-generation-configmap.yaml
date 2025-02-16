@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: video-generation-config
+  namespace: content-automation
+data:
+  GOOGLE_CLOUD_PROJECT: ${PROJECT_ID}
+  GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/google/key.json
+  PUBSUB_INPUT_TOPIC: content-for-video
+  PUBSUB_OUTPUT_TOPIC: generated-videos
+  PUBSUB_SUBSCRIPTION: video-generation-sub
+  STORAGE_BUCKET: ${PROJECT_ID}-content-assets
+  STORAGE_PREFIX: videos/
+  LOG_LEVEL: INFO
+  MAX_CONCURRENT_REQUESTS: "2"
+  RETRY_ATTEMPTS: "3"
+  MAX_FILE_SIZE_MB: "500"
+  MIN_FPS: "24"
+  MIN_RESOLUTION_WIDTH: "640"
+  MIN_RESOLUTION_HEIGHT: "360"
+  COMPRESSION_CRF: "23"
+  CUDA_VISIBLE_DEVICES: "0"  # For GPU support 

@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audio-generation-service
+  namespace: content-automation
+  labels:
+    app: audio-generation-service
+    component: content-generation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: audio-generation-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: audio-generation-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: audio-generation-service
+        image: gcr.io/${PROJECT_ID}/audio-generation-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          valueFrom:
+            configMapKeyRef:
+              name: audio-generation-config
+              key: GOOGLE_CLOUD_PROJECT
+        - name: STORAGE_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: audio-generation-config
+              key: STORAGE_BUCKET
+        - name: STORAGE_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: audio-generation-config
+              key: STORAGE_PREFIX
+        - name: PUBSUB_OUTPUT_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: audio-generation-config
+              key: PUBSUB_OUTPUT_TOPIC
+        - name: TTS_LANGUAGE_CODE
+          valueFrom:
+            configMapKeyRef:
+              name: audio-generation-config
+              key: TTS_LANGUAGE_CODE
+        - name: TTS_VOICE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: audio-generation-config
+              key: TTS_VOICE_NAME
+        - name: TTS_SPEAKING_RATE
+          valueFrom:
+            configMapKeyRef:
+              name: audio-generation-config
+              key: TTS_SPEAKING_RATE
+        - name: TTS_PITCH
+          valueFrom:
+            configMapKeyRef:
+              name: audio-generation-config
+              key: TTS_PITCH
+        - name: TTS_SAMPLE_RATE
+          valueFrom:
+            configMapKeyRef:
+              name: audio-generation-config
+              key: TTS_SAMPLE_RATE
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        volumeMounts:
+        - name: google-cloud-key
+          mountPath: /var/secrets/google
+          readOnly: true
+        - name: temp-audio
+          mountPath: /tmp/audio
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: google-cloud-key
+      - name: temp-audio
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audio-generation-service
+  namespace: content-automation
+  labels:
+    app: audio-generation-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: audio-generation-service 

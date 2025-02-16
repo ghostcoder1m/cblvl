@@ -1,0 +1,53 @@
+{
+    "pubsub": {
+        "input_topic": "projects/${PROJECT_ID}/topics/content-for-visuals",
+        "output_topic": "projects/${PROJECT_ID}/topics/generated-visuals",
+        "subscription": "projects/${PROJECT_ID}/subscriptions/visual-generation-sub"
+    },
+    "storage": {
+        "bucket": "${PROJECT_ID}-content-assets",
+        "images_prefix": "images/",
+        "max_file_size_mb": 10,
+        "allowed_formats": ["jpg", "png", "webp"]
+    },
+    "generation": {
+        "stability_ai": {
+            "enabled": true,
+            "model": "stable-diffusion-xl-1024-v1-0",
+            "steps": 50,
+            "cfg_scale": 7.5,
+            "width": 1024,
+            "height": 1024
+        },
+        "replicate": {
+            "enabled": true,
+            "model": "stability-ai/sdxl",
+            "version": "da77bc59ee60423279fd632efb4795ab731d9e3ca9705ef3341091fb989b7eaf"
+        },
+        "vision_ai": {
+            "enabled": true,
+            "safe_search": true,
+            "max_results": 10
+        }
+    },
+    "processing": {
+        "max_concurrent_requests": 5,
+        "retry_attempts": 3,
+        "batch_size": 5,
+        "timeout_seconds": 300
+    },
+    "quality": {
+        "min_resolution": {
+            "width": 800,
+            "height": 600
+        },
+        "max_file_size_mb": 5,
+        "required_formats": ["jpg", "png"],
+        "compression_quality": 85
+    },
+    "cache": {
+        "enabled": true,
+        "ttl_seconds": 86400,
+        "max_size_mb": 1000
+    }
+} 

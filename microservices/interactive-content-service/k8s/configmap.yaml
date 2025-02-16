@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: interactive-content-config
+data:
+  project_id: ${PROJECT_ID}
+  redis_url: "redis://redis-master:6379/0"
+  environment: "production"
+  log_level: "INFO"
+  
+  # Service configuration
+  max_concurrent_requests: "50"
+  request_timeout_seconds: "30"
+  batch_size: "10"
+  
+  # WebSocket configuration
+  websocket_max_connections: "10000"
+  websocket_heartbeat_interval: "30"
+  
+  # Redis configuration
+  redis_ttl_seconds: "86400"
+  redis_max_memory_mb: "1000"
+  
+  # Content moderation settings
+  moderation_enabled: "true"
+  auto_moderation: "true"
+  toxicity_threshold: "0.8"
+  spam_threshold: "0.9"
+  moderation_cache_duration: "3600"
+  
+  # Analytics settings
+  analytics_enabled: "true"
+  analytics_retention_days: "90"
+  analytics_batch_size: "100"
+  
+  # Interactive elements configuration
+  polls_enabled: "true"
+  polls_max_options: "10"
+  polls_min_options: "2"
+  polls_expiration_hours: "72"
+  
+  quizzes_enabled: "true"
+  quizzes_max_questions: "20"
+  quizzes_min_questions: "1"
+  
+  comments_enabled: "true"
+  comments_moderation: "true"
+  comments_max_length: "1000"
+  comments_threading_depth: "3"
+  
+  reactions_enabled: "true"
+  reactions_types: "like,love,insightful,celebrate,curious"
+  reactions_allow_multiple: "true"
+  
+  embedded_media_enabled: "true"
+  embedded_media_types: "image,video,audio,iframe"
+  embedded_media_max_size_mb: "50"
+  
+  # Storage configuration
+  storage_bucket: "${PROJECT_ID}-content-assets"
+  storage_interactive_prefix: "interactive/"
+  storage_templates_prefix: "templates/"
+  storage_max_file_size_mb: "10"
+  storage_allowed_formats: "html,json,md"
+  
+  # Pub/Sub topics
+  pubsub_input_topic: "content-for-interaction"
+  pubsub_output_topic: "interactive-content"
+  pubsub_subscription: "interactive-content-sub"
+  
+  # Template configurations
+  template_article_sections: "header,content,interactive,footer"
+  template_article_elements: "polls,quizzes,comments,reactions"
+  
+  template_tutorial_sections: "introduction,steps,quiz,feedback"
+  template_tutorial_elements: "quizzes,comments,reactions,progress"
+  
+  template_discussion_sections: "topic,responses,related"
+  template_discussion_elements: "comments,reactions,polls" 

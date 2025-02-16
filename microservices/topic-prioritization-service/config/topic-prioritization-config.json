@@ -1,0 +1,46 @@
+{
+    "pubsub": {
+        "input_topic": "projects/${PROJECT_ID}/topics/discovered-topics",
+        "output_topic": "projects/${PROJECT_ID}/topics/prioritized-topics",
+        "subscription": "projects/${PROJECT_ID}/subscriptions/topic-prioritization-sub"
+    },
+    "model": {
+        "vertex_ai": {
+            "endpoint_name": "topic_prioritization_endpoint",
+            "model_name": "topic_prioritization_model",
+            "region": "us-central1",
+            "training": {
+                "epochs": 10,
+                "batch_size": 32,
+                "learning_rate": 0.001,
+                "validation_split": 0.2
+            }
+        }
+    },
+    "scoring": {
+        "weights": {
+            "search_volume": 0.3,
+            "competition": 0.2,
+            "trend_score": 0.3,
+            "hitl_feedback": 0.2
+        },
+        "thresholds": {
+            "min_priority_score": 0.6,
+            "max_topics_per_batch": 20
+        }
+    },
+    "data_sources": {
+        "bigquery": {
+            "dataset": "content_automation",
+            "tables": {
+                "search_data": "search_metrics",
+                "feedback": "hitl_feedback",
+                "historical": "historical_topics"
+            }
+        }
+    },
+    "update_schedule": {
+        "model_retraining": "0 0 * * 0",  // Weekly on Sunday at midnight
+        "scoring_interval_minutes": 30
+    }
+} 
