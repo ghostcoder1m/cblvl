@@ -4,12 +4,13 @@ import { verifyIdToken } from '../../../utils/auth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize the Google Generative AI with your API key
-const apiKey = process.env.GOOGLE_API_KEY;
+const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 if (!apiKey) {
   console.error('GOOGLE_API_KEY is not configured in environment variables');
+  throw new Error('Google API key is not configured. Please set the NEXT_PUBLIC_GOOGLE_API_KEY environment variable.');
 }
 
-const genAI = new GoogleGenerativeAI(apiKey || '');
+const genAI = new GoogleGenerativeAI(apiKey);
 
 interface ContentGenerationRequest {
   topic: string;
@@ -20,6 +21,10 @@ interface ContentGenerationRequest {
   additionalInstructions?: string;
 }
 
+interface BatchContentGenerationRequest {
+  trends: ContentGenerationRequest[];
+}
+
 async function generateContent(params: ContentGenerationRequest): Promise<string> {
   const { topic, format, targetAudience, style, keywords, additionalInstructions } = params;
 
@@ -27,58 +32,42 @@ async function generateContent(params: ContentGenerationRequest): Promise<string
   let prompt = '';
   switch (format) {
     case 'article':
-      prompt = `You are a professional technology journalist writing an in-depth feature article about the AI Revolution. Write for technology professionals and business leaders.
+      prompt = `You are a professional journalist writing an in-depth feature article about ${topic}. Write for ${targetAudience}.
 
-Topic: AI Revolution: Transforming Industries and Shaping the Future
+Topic: ${topic}
 
 Key requirements:
-1. Write in an analytical and authoritative style
+1. Write in a ${style} style that engages the reader
 2. Include recent statistics, research findings, and expert quotes
 3. Present balanced viewpoints and factual information
 4. Structure the article with clear sections and subsections
-5. Naturally incorporate these key terms: artificial intelligence, machine learning, digital transformation, industry disruption, AI ethics, technological innovation, future of work, AI adoption, deep learning, neural networks
+5. Naturally incorporate these key terms: ${keywords.join(', ')}
 
 The article should:
 - Start with an attention-grabbing headline and subheading
-- Begin with a "Latest Global Trends" section that analyzes current world events and news across different sectors:
-  * Major geopolitical developments
-  * Economic trends and market shifts
-  * Social and cultural movements
-  * Environmental and climate developments
-  * Healthcare and public health situations
-  * Technology breakthroughs beyond AI
-  * Education and workforce changes
-  * Media and entertainment evolution
-- Then connect these trends to how AI is impacting or could impact each area
-- Include 6-8 main sections with clear subheadings
-- Feature expert quotes and perspectives from industry leaders
+- Begin with a "Current State" section that analyzes:
+  * Latest developments in the field
+  * Market trends and industry impact
+  * Key players and innovations
+  * Challenges and opportunities
+- Include 4-6 main sections with clear subheadings
+- Feature expert quotes and perspectives
 - Include relevant statistics and research findings
 - Provide real-world examples and case studies
-- Address both opportunities and challenges
-- End with implications for the future
+- Address both benefits and challenges
+- End with future implications
 
 Required sections:
-1. Latest Global Trends and Their AI Implications
-2. Introduction and Current State of AI
-3. Recent Breakthroughs and Technical Developments
-4. Industry Applications and Case Studies
-5. Economic and Workforce Impact
-6. Ethical Considerations and Challenges
-7. Future Outlook and Predictions
-8. Expert Perspectives and Insights
-9. Conclusion and Call to Action
+1. Introduction and Current State
+2. Recent Developments and Trends
+3. Industry Impact and Applications
+4. Challenges and Opportunities
+5. Future Outlook
+6. Conclusion
 
-Additional requirements:
-- Minimum 2500 words
-- Include specific examples for each industry mentioned
-- Reference recent global developments from 2024
-- Analyze how AI intersects with current world events
-- Include regional perspectives and global impact analysis
-- Balance technical depth with accessibility
-- Include a mix of established companies and innovative startups
-- Consider both short-term and long-term implications
+Additional context: ${additionalInstructions || 'Focus on providing valuable insights and actionable information'}
 
-Format the output in markdown, following AP style guidelines and proper journalistic structure.`;
+Format the output in markdown, following proper journalistic structure.`;
       break;
 
     case 'blog_post':
@@ -141,27 +130,45 @@ Additional context: ${additionalInstructions || 'Focus on shareability and engag
 
     // Generate content
     try {
+      console.log('Generating content for topic:', topic);
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
 
       if (!text) {
+        console.error('No content generated for topic:', topic);
         throw new Error('No content generated');
       }
 
       return text;
     } catch (error: any) {
+      console.error('Generation API Error:', error);
+      
       // Handle specific API errors
-      if (error.message?.includes('403 Forbidden')) {
-        throw new Error(`API access denied. Details: ${error.message}`);
+      if (error.message?.includes('403')) {
+        throw new Error('API access denied. Please ensure the API key has access to the Generative Language API and check quota limits.');
       }
-      if (error.message?.includes('API_KEY_SERVICE_BLOCKED')) {
-        throw new Error('The API key is blocked or has insufficient permissions. Please check API key configuration in Google Cloud Console.');
+      if (error.message?.includes('API_KEY_INVALID')) {
+        throw new Error('The provided API key is invalid. Please check your API key configuration.');
       }
-      throw error;
+      if (error.message?.includes('API_KEY_EXPIRED')) {
+        throw new Error('The API key has expired. Please update your API key.');
+      }
+      if (error.message?.includes('PERMISSION_DENIED')) {
+        throw new Error('Permission denied. Please ensure the API key has the necessary permissions and the Generative Language API is enabled.');
+      }
+      if (error.message?.includes('QUOTA_EXCEEDED')) {
+        throw new Error('API quota exceeded. Please check your usage limits in the Google Cloud Console.');
+      }
+      if (error.message?.includes('RESOURCE_EXHAUSTED')) {
+        throw new Error('Resource limits exceeded. Please try again later or check your quota settings.');
+      }
+      
+      // For other errors, include more details
+      throw new Error(`Failed to generate content: ${error.message}`);
     }
   } catch (error) {
-    console.error('AI Content Generation Error:', error);
+    console.error('Content Generation Error:', error);
     throw error;
   }
 }
@@ -185,86 +192,93 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Check if API key is configured
-    if (!process.env.GOOGLE_API_KEY) {
+    if (!process.env.NEXT_PUBLIC_GOOGLE_API_KEY) {
+      console.error('Google API key is not configured');
       return res.status(500).json({ 
-        error: 'Google API key is not configured',
-        details: 'Please configure GOOGLE_API_KEY in environment variables'
+        error: 'Configuration Error',
+        details: 'The Google API key is not configured. Please check your environment variables.'
       });
     }
 
-    const params = req.body as ContentGenerationRequest;
+    // Validate API key format
+    if (!process.env.NEXT_PUBLIC_GOOGLE_API_KEY.startsWith('AI')) {
+      console.error('Invalid Google API key format');
+      return res.status(500).json({ 
+        error: 'Configuration Error',
+        details: 'The Google API key appears to be invalid. Please check your API key format.'
+      });
+    }
 
-    // Validate required fields
-    if (!params.topic || !params.format) {
+    const { trends } = req.body as BatchContentGenerationRequest;
+
+    // Validate request
+    if (!trends || !Array.isArray(trends) || trends.length === 0) {
       return res.status(400).json({
-        error: 'Missing required fields',
-        details: {
-          required: ['topic', 'format'],
-          received: { topic: !!params.topic, format: !!params.format }
-        }
+        error: 'Invalid Request',
+        details: 'Request must include an array of trends to generate content for.'
       });
     }
 
-    try {
-      const content = await generateContent(params);
-      
-      // Create a new content generation task
-      const task = {
-        userId: decodedToken.uid,
-        topic: params.topic,
-        format: params.format,
-        status: 'completed',
-        createdAt: new Date().toISOString(),
-        output: content
-      };
+    console.log('Processing content generation for trends:', trends.map(t => t.topic));
 
-      // Save the task to Firestore
-      await db.collection('contentTasks').add(task);
+    // Generate content for each trend
+    const tasks = [];
+    let hasSuccessfulGeneration = false;
 
-      return res.status(200).json(task);
-    } catch (error: any) {
-      // Handle specific API errors with detailed messages
-      if (error.message?.includes('403 Forbidden')) {
-        return res.status(403).json({
-          error: 'API access denied',
-          details: 'The Generative Language API is not enabled or the API key lacks necessary permissions. Please check:',
-          steps: [
-            'Enable the API at: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com',
-            'Verify API key permissions in the Google Cloud Console',
-            'Ensure billing is enabled for the project'
-          ]
-        });
+    for (const trendRequest of trends) {
+      try {
+        console.log('Starting content generation for trend:', trendRequest.topic);
+        const content = await generateContent(trendRequest);
+        
+        if (!content) {
+          throw new Error('No content was generated');
+        }
+
+        // Create a task for each trend
+        const task = {
+          userId: decodedToken.uid,
+          topic: trendRequest.topic,
+          format: trendRequest.format,
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+          content: content
+        };
+
+        // Save the task to Firestore
+        const taskRef = await db.collection('contentTasks').add(task);
+        console.log('Content generated and saved for trend:', trendRequest.topic);
+        tasks.push({ ...task, id: taskRef.id });
+        hasSuccessfulGeneration = true;
+      } catch (error: any) {
+        console.error('Error generating content for trend:', trendRequest.topic, error);
+        const errorMessage = error.message || 'Unknown error occurred';
+        const failedTask = {
+          userId: decodedToken.uid,
+          topic: trendRequest.topic,
+          format: trendRequest.format,
+          status: 'failed',
+          createdAt: new Date().toISOString(),
+          error: errorMessage
+        };
+        const taskRef = await db.collection('contentTasks').add(failedTask);
+        tasks.push({ ...failedTask, id: taskRef.id });
       }
-      if (error.message?.includes('API_KEY_SERVICE_BLOCKED')) {
-        return res.status(403).json({
-          error: 'API key service blocked',
-          details: 'The API key is blocked or has insufficient permissions.',
-          steps: [
-            'Check API key restrictions in Google Cloud Console',
-            'Verify API key is not restricted from accessing Generative Language API',
-            'Create a new API key if necessary'
-          ]
-        });
-      }
-      if (error.message?.includes('quota')) {
-        return res.status(429).json({
-          error: 'API quota exceeded',
-          details: 'The project has exceeded its API quota limits.',
-          steps: [
-            'Check quota usage in Google Cloud Console',
-            'Consider upgrading your quota limits',
-            'Implement rate limiting if needed'
-          ]
-        });
-      }
-      throw error;
     }
+
+    if (!hasSuccessfulGeneration) {
+      return res.status(500).json({
+        error: 'Generation Failed',
+        details: 'Failed to generate any content. Please check your API key configuration and try again.',
+        tasks
+      });
+    }
+
+    return res.status(200).json({ tasks });
   } catch (error: any) {
     console.error('Content Generation Error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Failed to generate content',
-      details: error.message,
-      timestamp: new Date().toISOString()
+      details: error.message
     });
   }
 } 

@@ -1,36 +1,43 @@
-import os
 import logging
 import google.cloud.logging
-from pythonjsonlogger import jsonlogger
+from google.cloud.logging.handlers import CloudLoggingHandler
+import os
 
 def setup_logging():
-    """Setup structured logging with Google Cloud Logging."""
-    # Initialize Google Cloud Logging
-    if os.getenv('GOOGLE_CLOUD_PROJECT'):
-        client = google.cloud.logging.Client()
-        client.setup_logging()
-
-    # Create custom JSON formatter
-    class CustomJsonFormatter(jsonlogger.JsonFormatter):
-        def add_fields(self, log_record, record, message_dict):
-            super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)
-            log_record['severity'] = record.levelname
-            log_record['service'] = 'video-generation-service'
-            log_record['timestamp'] = self.formatTime(record)
-
+    """Set up logging configuration for both local and cloud logging."""
     # Create logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    # Add JSON handler if not running in Google Cloud
-    if not os.getenv('GOOGLE_CLOUD_PROJECT'):
-        handler = logging.StreamHandler()
-        formatter = CustomJsonFormatter(
-            '%(timestamp)s %(severity)s %(service)s %(message)s'
-        )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+    # Clear any existing handlers
+    logger.handlers = []
+
+    # Create console handler with a higher log level
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    
+    # Create formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    console_handler.setFormatter(formatter)
+    
+    # Add console handler to the logger
+    logger.addHandler(console_handler)
+
+    # Set up Google Cloud Logging if credentials are available
+    if os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+        try:
+            client = google.cloud.logging.Client()
+            cloud_handler = CloudLoggingHandler(client)
+            cloud_handler.setLevel(logging.INFO)
+            logger.addHandler(cloud_handler)
+            logger.info("Google Cloud Logging initialized")
+        except Exception as e:
+            logger.warning(f"Failed to initialize Google Cloud Logging: {str(e)}")
+    else:
+        logger.info("Google Cloud Logging not configured - using local logging only")
 
 def get_logger(name: str) -> logging.Logger:
-    """Get a logger instance with the given name."""
+    """Get a logger instance with the specified name."""
     return logging.getLogger(name) 

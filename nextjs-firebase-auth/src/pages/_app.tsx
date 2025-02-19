@@ -2,10 +2,11 @@ import '../styles/globals.css';
 
 import { AppProps } from 'next/app';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider } from '../contexts/AuthContext';
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <>
+    <AuthProvider>
       <Component {...pageProps} />
       <Toaster
         position="top-right"
@@ -31,7 +32,7 @@ function MyApp({ Component, pageProps }: AppProps) {
           },
         }}
       />
-    </>
+    </AuthProvider>
   );
 }
 

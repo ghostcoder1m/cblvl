@@ -9,39 +9,55 @@
         "videos_prefix": "videos/",
         "temp_prefix": "temp/",
         "max_file_size_mb": 500,
-        "allowed_formats": ["mp4", "webm", "mov"]
+        "allowed_formats": ["mp4", "webm"]
     },
     "generation": {
-        "text_to_video": {
-            "enabled": true,
-            "model": "modelscope/damo-text-to-video-generation",
-            "max_duration": 60,
-            "fps": 30,
-            "resolution": {
-                "width": 1024,
-                "height": 576
-            }
+        "script": {
+            "max_length": 500,
+            "min_length": 100,
+            "temperature": 0.7,
+            "top_p": 0.9
         },
-        "image_to_video": {
-            "enabled": true,
-            "model": "stability-ai/stable-video-diffusion",
-            "version": "1.0.0",
-            "frames": 60,
-            "fps": 30,
-            "motion_bucket_id": 127
+        "voice": {
+            "language_code": "en-US",
+            "voice_name": "en-US-Neural2-D",
+            "speaking_rate": 1.0,
+            "pitch": 0,
+            "sample_rate_hertz": 24000,
+            "effects_profile_id": ["headphone-class-device"]
         },
-        "video_enhancement": {
-            "enabled": true,
-            "upscale_factor": 2,
-            "denoise_strength": 0.5
+        "video": {
+            "formats": {
+                "tiktok": {
+                    "width": 1080,
+                    "height": 1920,
+                    "fps": 30,
+                    "max_duration": 60
+                },
+                "youtube_shorts": {
+                    "width": 1080,
+                    "height": 1920,
+                    "fps": 30,
+                    "max_duration": 60
+                },
+                "standard": {
+                    "width": 1920,
+                    "height": 1080,
+                    "fps": 30,
+                    "max_duration": 180
+                }
+            },
+            "image_duration": 5,
+            "transition_duration": 1,
+            "min_images": 5,
+            "max_images": 20
         }
     },
     "processing": {
         "max_concurrent_requests": 2,
         "retry_attempts": 3,
         "batch_size": 1,
-        "timeout_seconds": 900,
-        "chunk_size_mb": 100
+        "timeout_seconds": 900
     },
     "quality": {
         "min_resolution": {
@@ -58,5 +74,19 @@
         "enabled": true,
         "ttl_seconds": 86400,
         "max_size_mb": 5000
+    },
+    "api": {
+        "gemini": {
+            "model": "gemini-pro",
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 1000
+        },
+        "custom_search": {
+            "safe_search": "high",
+            "image_size": "large",
+            "image_type": "photo",
+            "num_images": 10
+        }
     }
 } 

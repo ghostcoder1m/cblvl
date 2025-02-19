@@ -12,16 +12,31 @@ import {
   ArrowPathIcon,
   DocumentDuplicateIcon,
   TrashIcon,
+  BeakerIcon,
 } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
 import ContentGenerationForm, { ContentGenerationData } from '../components/ContentGenerationForm';
 import { HTMLMotionProps } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ContentVersion {
   id: string;
   timestamp: string;
   changes: string;
   author: string;
+}
+
+interface ContentTask {
+  id: string;
+  topic: string;
+  status: string;
+  createdAt: string;
+  format: string;
+  progress: number;
+  keywords?: string[];
+  targetAudience?: string;
+  style?: string;
+  content?: string;
 }
 
 interface ContentItem {
@@ -33,37 +48,39 @@ interface ContentItem {
   versions: ContentVersion[];
   createdAt: string;
   updatedAt: string;
+  isGenerated?: boolean;
+  task?: ContentTask;
 }
 
 export default function Content() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [contents, setContents] = useState<ContentItem[]>([]);
+  const [generatedContents, setGeneratedContents] = useState<ContentItem[]>([]);
+  const [activeTab, setActiveTab] = useState<'library' | 'generated'>('library');
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
   const [editedContent, setEditedContent] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth({ requireAuth: true });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push('/login');
-      } else {
-        fetchContents();
-      }
-    });
-
-    return () => unsubscribe();
-  }, [router]);
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+  }, [user, router]);
 
   const fetchContents = async () => {
+    if (!user) return;
+    
     try {
       setLoading(true);
       const response = await api.getContents();
       if (Array.isArray(response)) {
-        setContents(response);
+        setContents(response.filter(content => !content.isGenerated));
       } else {
         console.error('Invalid response format:', response);
         toast.error('Received invalid data format from server');
@@ -77,6 +94,67 @@ export default function Content() {
       setLoading(false);
     }
   };
+
+  const fetchGeneratedContents = async () => {
+    if (!user) return;
+    
+    try {
+      const token = await user.getIdToken();
+      
+      // Fetch tasks from Firestore
+      const response = await fetch('/api/tasks', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+
+      const tasks = await response.json();
+      console.log('Fetched tasks:', tasks);
+
+      const generatedItems: ContentItem[] = tasks
+        .filter(task => task.status === 'completed' && task.content)
+        .map(task => ({
+          id: task.id,
+          title: task.topic,
+          content: task.content,
+          format: task.format,
+          status: task.status,
+          versions: [],
+          createdAt: task.createdAt,
+          updatedAt: task.createdAt,
+          isGenerated: true,
+          task: task,
+        }));
+
+      console.log('Generated items:', generatedItems);
+      setGeneratedContents(generatedItems);
+    } catch (error) {
+      console.error('Failed to fetch generated contents:', error);
+      toast.error('Failed to fetch generated contents');
+      setGeneratedContents([]);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchContents();
+      fetchGeneratedContents();
+    }
+  }, [user, activeTab]);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  const displayedContents = activeTab === 'library' ? contents : generatedContents;
 
   const handleEdit = (content: ContentItem) => {
     setSelectedContent(content);
@@ -153,148 +231,98 @@ export default function Content() {
 
   return (
     <Layout>
-      <div className="flex h-full">
-        {/* Content List */}
-        <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Content Library</h2>
-            <button
-              onClick={() => setIsGenerateModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              Generate Content
-            </button>
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="space-y-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Content</h1>
+              <p className="mt-2 text-sm text-gray-600">
+                Manage your content library and generated articles.
+              </p>
+            </div>
           </div>
+
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('library')}
+                className={`${
+                  activeTab === 'library'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              >
+                Library
+              </button>
+              <button
+                onClick={() => setActiveTab('generated')}
+                className={`${
+                  activeTab === 'generated'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              >
+                Generated Content
+              </button>
+            </nav>
+          </div>
+
           {loading ? (
-            <div className="flex justify-center p-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200">
-              {contents.map((content) => (
-                <motion.div
-                  key={content.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="p-4 hover:bg-gray-50"
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium">{content.title}</h3>
-                      <p className="text-sm text-gray-500">
-                        {new Date(content.updatedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handlePreview(content)}
-                        className="p-1 text-gray-400 hover:text-gray-500"
-                      >
-                        <EyeIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(content)}
-                        className="p-1 text-gray-400 hover:text-gray-500"
-                      >
-                        <PencilIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleVersionHistory(content)}
-                        className="p-1 text-gray-400 hover:text-gray-500"
-                      >
-                        <ClockIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDuplicate(content)}
-                        className="p-1 text-gray-400 hover:text-gray-500"
-                      >
-                        <DocumentDuplicateIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(content)}
-                        className="p-1 text-gray-400 hover:text-red-500"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
+            <>
+              {displayedContents.length > 0 ? (
+                <div className="bg-white shadow sm:rounded-lg">
+                  <div className="px-4 py-5 sm:p-6">
+                    <div className="space-y-6">
+                      {displayedContents.map((content) => (
+                        <div
+                          key={content.id}
+                          className="border rounded-lg p-6 hover:bg-gray-50"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3">
+                                <h3 className="text-xl font-semibold text-gray-900">
+                                  {content.title}
+                                </h3>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  {content.format}
+                                </span>
+                                {content.isGenerated && (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    Generated
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-4 prose max-w-none">
+                                {content.content && (
+                                  <div dangerouslySetInnerHTML={{ __html: content.content }} />
+                                )}
+                              </div>
+                              <p className="mt-2 text-sm text-gray-500">
+                                Created on {new Date(content.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Content View/Edit Area */}
-        <div className="flex-1 overflow-y-auto">
-          {selectedContent ? (
-            <div className="h-full">
-              {/* Toolbar */}
-              <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-lg font-semibold">{selectedContent.title}</h2>
-                <div className="flex space-x-4">
-                  {isEditMode ? (
-                    <>
-                      <button
-                        onClick={handleSave}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => setIsEditMode(false)}
-                        className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                    </>
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 mt-4">
+                  {activeTab === 'library' ? (
+                    <p>No content in your library yet.</p>
                   ) : (
-                    <button
-                      onClick={() => handleEdit(selectedContent)}
-                      className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                    >
-                      Edit
-                    </button>
+                    <p>No generated content yet. Try generating some articles from your saved trends.</p>
                   )}
                 </div>
-              </div>
-
-              {/* Content Area */}
-              <div className="p-6">
-                {isEditMode ? (
-                  <textarea
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="w-full h-[calc(100vh-250px)] p-4 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                ) : isPreviewMode ? (
-                  <div className="prose max-w-none">
-                    {selectedContent.content}
-                  </div>
-                ) : showVersionHistory ? (
-                  <div className="space-y-4">
-                    {selectedContent.versions.map((version) => (
-                      <div
-                        key={version.id}
-                        className="p-4 border border-gray-200 rounded-md"
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium">{version.author}</span>
-                          <span className="text-sm text-gray-500">
-                            {new Date(version.timestamp).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600">{version.changes}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ) : (
-            <div className="h-full flex items-center justify-center text-gray-500">
-              Select content to view or edit
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>

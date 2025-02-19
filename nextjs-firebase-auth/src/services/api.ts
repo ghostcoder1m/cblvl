@@ -2,6 +2,7 @@ import axios, { AxiosResponse } from 'axios';
 import { ContentTask, SystemMetrics } from '../types';
 import { auth } from '../firebaseConfig';
 import { toast } from 'react-hot-toast';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface ContentResponse {
   contents: any[];
@@ -51,17 +52,23 @@ class ApiService {
     return ApiService.instance;
   }
 
-  private async getAuthToken(): Promise<string | null> {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        throw new Error('No user logged in');
-      }
-      return await currentUser.getIdToken();
-    } catch (error) {
-      console.error('Error getting auth token:', error);
-      return null;
-    }
+  private async getAuthToken(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      // Wait for auth state to be initialized
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        unsubscribe(); // Unsubscribe immediately after first auth state change
+        if (!user) {
+          reject(new Error('No user logged in. Please sign in to continue.'));
+          return;
+        }
+        try {
+          const token = await user.getIdToken();
+          resolve(token);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
   }
 
   private async request<T>(
@@ -71,10 +78,6 @@ class ApiService {
   ): Promise<T> {
     try {
       const token = await this.getAuthToken();
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
       const response: AxiosResponse<T> = await axios({
         method,
         url: `/api${endpoint}`,
@@ -87,26 +90,59 @@ class ApiService {
 
       return response.data;
     } catch (error: any) {
-      console.error('API request failed:', error.response?.data || error.message);
+      console.error('API request failed:', {
+        endpoint,
+        error: error.response?.data || error,
+        status: error.response?.status,
+        message: error.message
+      });
       
-      if (error.response?.status === 401) {
-        const message = 'Authentication required. Please log in again.';
+      if (error.message?.includes('No user logged in')) {
+        // Handle authentication errors
+        const message = 'Please sign in to continue.';
         toast.error(message);
+        window.location.href = '/login';
         throw new Error(message);
-      } else if (error.response?.status === 403) {
-        const errorMessage = error.response.data?.details || 
-                           error.response.data?.error || 
-                           'Access denied. Please check your permissions.';
-        toast.error(errorMessage, { duration: 8000 });
-        throw new Error(errorMessage);
-      } else {
-        const errorMessage = error.response?.data?.error || 
-                           error.response?.data?.message || 
-                           error.message || 
-                           'An unexpected error occurred';
-        toast.error(errorMessage);
-        throw new Error(errorMessage);
       }
+
+      if (error.response?.status === 401) {
+        const message = error.response.data?.error || 'Your session has expired. Please sign in again.';
+        toast.error(message);
+        window.location.href = '/login';
+        throw new Error(message);
+      }
+
+      if (error.response?.status === 403) {
+        const message = error.response.data?.error || 'Access denied. Please check your permissions.';
+        toast.error(message, { duration: 8000 });
+        throw new Error(message);
+      }
+
+      if (error.response?.status === 500) {
+        const serverError = error.response.data;
+        const message = serverError?.details
+          ? `Server error: ${serverError.error}. ${serverError.details}`
+          : 'An unexpected server error occurred. Please try again later.';
+        
+        // Log detailed error information
+        console.error('Server Error Details:', {
+          error: serverError?.error,
+          details: serverError?.details,
+          code: serverError?.code,
+          type: serverError?.type
+        });
+        
+        toast.error(message, { duration: 8000 });
+        throw new Error(message);
+      }
+
+      // Handle other errors
+      const errorMessage = error.response?.data?.error || 
+                         error.response?.data?.message || 
+                         error.message || 
+                         'An unexpected error occurred';
+      toast.error(errorMessage);
+      throw new Error(errorMessage);
     }
   }
 

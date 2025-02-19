@@ -9,6 +9,7 @@ export interface ContentTask {
   targetAudience?: string;
   style?: string;
   additionalInstructions?: string;
+  content?: string;
   output?: string;
   error?: string;
 }

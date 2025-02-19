@@ -9,6 +9,8 @@ import {
   ArrowLeftOnRectangleIcon,
   BellIcon,
   MagnifyingGlassIcon,
+  BookmarkIcon,
+  VideoCameraIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../hooks/useAuth';
 import { motion } from 'framer-motion';
@@ -53,7 +55,9 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Content', href: '/content', icon: DocumentTextIcon },
     { name: 'Generate', href: '/content-generator', icon: DocumentTextIcon },
+    { name: 'Video Generator', href: '/video-generator', icon: VideoCameraIcon },
     { name: 'Trend Finder', href: '/trend-finder', icon: MagnifyingGlassIcon },
+    { name: 'Saved Trends', href: '/saved-trends', icon: BookmarkIcon },
     { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
     { name: 'Settings', href: '/settings', icon: UserCircleIcon },
   ];
